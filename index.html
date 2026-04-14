@@ -818,24 +818,9 @@ function renderTeamReport(){
   }).join('')}</div>`;
 }
 function seedData(){
-  if(clients.length||team.length||entries.length)return;
-  team=[
-    {id:'1',name:'Jaye Dixon',initials:'JD',role:'Customer Success and Systems Manager',monthlyHours:160},
-    {id:'2',name:'Sejal',initials:'SE',role:'Account Manager',monthlyHours:160},
-    {id:'3',name:'Taylor',initials:'TA',role:'Account Coordinator',monthlyHours:160}
-  ];
-  clients=[
-    {id:'deicorp_1',name:'Deicorp',code:'DEI',budget:45,scope:'PR and social retainer',services:['PR','Social Media','Reporting'],assignedTeam:['Jaye Dixon','Sejal','Taylor']},
-    {id:'kokoda_1',name:'Kokoda Property',code:'KKP',budget:32,scope:'PR and reporting',services:['PR','Reporting'],assignedTeam:['Jaye Dixon','Sejal']}
-  ];
-  entries=[
-    {id:1,client:'deicorp_1',service:'PR',notes:'Media pitching',duration:5400000,date:todayStr(),member:'Sejal'},
-    {id:2,client:'kokoda_1',service:'Reporting',notes:'Monthly report draft',duration:3600000,date:todayStr(),member:'Jaye Dixon'}
-  ];
-  save();
+  // start empty
 }
 function init(){
-  seedData();
   updateMonth();
   document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('rDate').value=todayStr();

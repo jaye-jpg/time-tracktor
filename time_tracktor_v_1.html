@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Tracktor — Greenpoint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F0EDE6;--surface:#FAF9F6;--surface2:#ECEAE3;--surface3:#E2DFD8;
+  --sb:#111110;--sb-border:rgba(255,255,255,0.06);--sb-muted:#555550;
+  --sb-hover:rgba(255,255,255,0.05);--sb-active:rgba(255,255,255,0.08);
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#111110;--muted:#888880;
+  --danger:#A83232;--danger-bg:rgba(168,50,50,0.07);
+  --warn:#8A6000;--warn-bg:rgba(138,96,0,0.07);
+  --ok:#2A6030;--ok-bg:rgba(42,96,48,0.07);
+  --sb-w:220px;--sb-w-col:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;}
+.sb{width:var(--sb-w);flex-shrink:0;background:var(--sb);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;overflow:hidden;transition:width .22s cubic-bezier(.4,0,.2,1);z-index:50;}
+.sb.collapsed{width:var(--sb-w-col);}
+.sb-top{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1rem 1rem 1.25rem;border-bottom:1px solid var(--sb-border);flex-shrink:0;}
+.sb-wordmark{display:flex;flex-direction:column;overflow:hidden;white-space:nowrap;}
+.sb-wordmark span:first-child{font-weight:300;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#E8E5DE;}
+.sb-wordmark span:last-child{font-size:10px;color:var(--sb-muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+.sb-toggle{background:none;border:none;cursor:pointer;color:var(--sb-muted);padding:4px;flex-shrink:0;display:flex;align-items:center;transition:color .15s;}
+.sb-toggle:hover{color:#E8E5DE;}
+.sb-toggle svg{width:16px;height:16px;}
+.sb-nav{flex:1;padding:.75rem 0;overflow-y:auto;overflow-x:hidden;}
+.sb-section{font-size:9px;color:#3A3A38;text-transform:uppercase;letter-spacing:.12em;padding:.75rem 1.25rem .25rem;white-space:nowrap;transition:opacity .15s;}
+.sb.collapsed .sb-section{opacity:0;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 1.25rem;cursor:pointer;color:var(--sb-muted);font-size:12px;font-weight:300;white-space:nowrap;transition:background .12s,color .12s;border-left:2px solid transparent;position:relative;}
+.sb-item:hover{background:var(--sb-hover);color:#E8E5DE;}
+.sb-item.active{background:var(--sb-active);color:#F0EDE6;border-left-color:#F0EDE6;}
+.sb-item .icon{font-size:15px;flex-shrink:0;width:20px;text-align:center;}
+.sb-item .label{overflow:hidden;transition:opacity .15s,width .15s;}
+.sb.collapsed .sb-item .label{opacity:0;width:0;}
+.sb-item .tip{display:none;position:absolute;left:calc(var(--sb-w-col) + 8px);background:#222;color:#eee;font-size:11px;padding:4px 10px;white-space:nowrap;pointer-events:none;border-radius:3px;z-index:99;}
+.sb.collapsed .sb-item:hover .tip{display:block;}
+.sb-bottom{padding:1rem 1.25rem;border-top:1px solid var(--sb-border);flex-shrink:0;overflow:hidden;}
+.month-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.month-label{font-size:11px;color:#888;white-space:nowrap;font-weight:400;letter-spacing:.05em;transition:opacity .15s;}
+.sb.collapsed .month-label{opacity:0;}
+.month-btn{background:none;border:none;color:#555;cursor:pointer;font-size:15px;padding:0 2px;line-height:1;}
+.month-btn:hover{color:#aaa;}
+.shell{display:flex;min-height:100vh;}
+.main{margin-left:var(--sb-w);flex:1;padding:2.5rem 2.5rem 5rem;transition:margin-left .22s cubic-bezier(.4,0,.2,1);min-width:0;}
+.main.expanded{margin-left:var(--sb-w-col);}
+.page{display:none;}.page.active{display:block;}
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:1.25rem;border-bottom:1px solid var(--border);margin-bottom:2rem;gap:12px;flex-wrap:wrap;}
+.page-title{font-family:'DM Serif Display',Georgia,serif;font-size:30px;font-weight:400;letter-spacing:-.01em;line-height:1;}
+.page-sub{font-size:11px;color:var(--muted);margin-top:5px;letter-spacing:.03em;}
+.btn{height:34px;padding:0 18px;font-size:11px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:transparent;color:var(--text);transition:all .14s;white-space:nowrap;border-radius:0;}
+.btn:hover{background:var(--text);color:var(--bg);}
+.btn-solid{background:var(--text);color:var(--bg);border-color:var(--text);}
+.btn-solid:hover{background:#333;}
+label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.1em;}
+select,input[type=text],input[type=date],input[type=number],textarea{width:100%;height:36px;background:var(--surface);border:none;border-bottom:1px solid var(--border2);color:var(--text);padding:0 8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:300;outline:none;appearance:none;border-radius:0;}
+textarea{height:72px;padding:8px;resize:vertical;}
+select:focus,input:focus,textarea:focus{border-bottom-color:var(--text);background:var(--surface2);}
+select option{background:#fff;color:#111;}
+.team-picker{border:1px solid var(--border2);background:var(--surface);max-height:140px;overflow-y:auto;}
+.team-picker-item{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);transition:background .1s;}
+.team-picker-item:last-child{border-bottom:none;}
+.team-picker-item:hover{background:var(--surface2);}
+.team-picker-item input[type=checkbox]{width:14px;height:14px;accent-color:var(--text);flex-shrink:0;}
+.report-filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;padding:10px 14px;background:var(--surface);border:1px solid var(--border);flex-wrap:wrap;}
+.report-filter-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+.report-filter-bar select{height:28px;font-size:12px;padding:0 8px;border-bottom:1px solid var(--border2);background:transparent;flex:0 0 auto;width:auto;min-width:160px;}
+.filter-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);}
+.filter-toggle button{height:28px;padding:0 14px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;background:transparent;color:var(--muted);transition:all .12s;}
+.filter-toggle button.active{background:var(--text);color:var(--bg);}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:1px;}
+.stat{background:var(--surface);padding:1.25rem 1.5rem;}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.stat-val{font-family:'DM Serif Display',Georgia,serif;font-size:34px;font-weight:400;line-height:1;}
+.stat-val small{font-size:16px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:300;}
+.timer-card{background:var(--surface);border:1px solid var(--border);padding:1.5rem;margin-bottom:1px;}
+.timer-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2rem;margin-bottom:1.5rem;}
+.timer-bottom{display:flex;align-items:center;gap:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);}
+.timer-digits{font-family:'DM Serif Display',Georgia,serif;font-size:48px;font-weight:400;letter-spacing:-1px;font-variant-numeric:tabular-nums;flex:1;line-height:1;color:var(--text);transition:color .2s;}
+.timer-digits.running{color:var(--ok);}
+.btn-timer{height:42px;padding:0 30px;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--text);background:var(--text);color:var(--bg);transition:all .14s;border-radius:0;}
+.btn-timer:hover{background:#333;}
+.btn-timer.stop{background:var(--danger);border-color:var(--danger);color:#fff;}
+.btn-timer.stop:hover{background:#8a2020;}
+.log-card{background:var(--surface);border:1px solid var(--border);overflow:hidden;}
+.log-toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;}
+.log-toolbar-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.log-filters{display:flex;gap:6px;}
+.filter-select{height:28px;font-size:11px;padding:0 8px;width:auto;border-bottom:1px solid var(--border);background:transparent;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:8px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;border-bottom:1px solid var(--border);font-weight:500;}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);font-weight:300;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--surface2);}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 4px;line-height:1;}
+.del-btn:hover{color:var(--danger);}
+.avatar{width:24px;height:24px;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--muted);flex-shrink:0;letter-spacing:.04em;}
+.empty-row td{text-align:center;padding:3rem;color:var(--muted);font-size:12px;}
+.retro-row td{background:var(--surface2);padding:6px 8px;border-top:1px solid var(--border2);}
+.retro-row input,.retro-row select{height:28px;font-size:11px;padding:0 6px;background:var(--surface);}
+.btn-add{height:28px;padding:0 14px;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--text);background:var(--text);color:var(--bg);border-radius:0;white-space:nowrap;}
+.btn-add:hover{background:#333;}
+.clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);}
+.client-card{background:var(--surface);padding:1.25rem;transition:background .12s;}
+.client-card:hover{background:var(--surface2);}
+.client-name{font-size:14px;font-weight:500;letter-spacing:.02em;margin-bottom:3px;}
+.client-scope{font-size:11px;color:var(--muted);margin-bottom:1rem;font-weight:300;line-height:1.5;}
+.client-budget-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+.client-tracked{font-family:'DM Serif Display',Georgia,serif;font-size:22px;}
+.client-of{font-size:11px;color:var(--muted);}
+.progress{height:2px;background:var(--surface3);width:100%;overflow:hidden;}
+.progress-fill{height:100%;transition:width .3s;}
+.progress-fill.ok{background:var(--ok);}.progress-fill.warn{background:var(--warn);}.progress-fill.over{background:var(--danger);}
+.client-team-avatars{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;}
+.client-actions{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.btn-xs{height:24px;padding:0 10px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:transparent;color:var(--muted);border-radius:0;}
+.btn-xs:hover{color:var(--text);border-color:var(--text);}
+.btn-xs.remove{color:var(--danger);border-color:rgba(168,50,50,.25);}
+.btn-xs.remove:hover{background:var(--danger-bg);}
+.clients-empty{padding:4rem 2rem;text-align:center;}
+.clients-empty-title{font-family:'DM Serif Display',Georgia,serif;font-size:20px;margin-bottom:8px;}
+.clients-empty-sub{font-size:12px;color:var(--muted);}
+.modal-bg{position:fixed;inset:0;background:rgba(10,10,10,.55);display:none;align-items:center;justify-content:center;z-index:200;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'DM Serif Display',Georgia,serif;font-size:24px;margin-bottom:1.5rem;}
+.form-row{margin-bottom:1.1rem;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;padding-top:1.25rem;border-top:1px solid var(--border);margin-top:1.5rem;}
+.report-block{background:var(--surface);border:1px solid var(--border);margin-bottom:1px;overflow:hidden;}
+.report-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.report-head-name{font-size:13px;font-weight:500;letter-spacing:.02em;}
+.report-head-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.report-head-right{display:flex;align-items:center;gap:12px;}
+.badge{font-size:9px;padding:2px 7px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border:1px solid;}
+.badge-ok{border-color:var(--ok);color:var(--ok);}
+.badge-warn{border-color:var(--warn);color:var(--warn);}
+.badge-over{border-color:var(--danger);color:var(--danger);}
+.report-progress{padding:10px 16px 12px;}
+.report-pct{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px;}
+.svc-row{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px;}
+.svc-row:last-child{border-bottom:none;}
+.svc-name{flex:1;font-weight:300;}
+.svc-bar{width:90px;height:2px;background:var(--surface3);overflow:hidden;}
+.svc-bar-fill{height:100%;background:var(--text);}
+.svc-time{font-weight:500;min-width:50px;text-align:right;font-variant-numeric:tabular-nums;}
+.member-row{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px;}
+.member-row:last-child{border-bottom:none;}
+.member-name{flex:1;font-weight:500;font-size:13px;}
+.member-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.member-bar-wrap{width:80px;height:2px;background:var(--surface3);}
+.member-bar-fill{height:100%;background:var(--text);}
+.member-time{font-family:'DM Serif Display',Georgia,serif;font-size:20px;min-width:60px;text-align:right;}
+.report-empty{padding:3rem;text-align:center;color:var(--muted);font-size:12px;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--surface3);}
+@media (max-width: 900px){
+  .timer-fields{grid-template-columns:1fr;gap:1rem;}
+  .timer-bottom{flex-direction:column;align-items:flex-start;}
+  .stats-row{grid-template-columns:1fr;}
+  .main{padding:1.25rem 1rem 3rem;}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="sb" id="sb">
+  <div class="sb-top">
+    <div class="sb-wordmark"><span>Greenpoint</span><span>Time Tracktor</span></div>
+    <button class="sb-toggle" onclick="toggleSb()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+    </button>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Workspace</div>
+    <div class="sb-item active" onclick="goto('tracker',this)"><span class="icon">⏱</span><span class="label">Time tracker</span><span class="tip">Time tracker</span></div>
+    <div class="sb-item" onclick="goto('clients',this)"><span class="icon">🏢</span><span class="label">Clients</span><span class="tip">Clients</span></div>
+    <div class="sb-item" onclick="goto('team-manage',this)"><span class="icon">👤</span><span class="label">Team</span><span class="tip">Team</span></div>
+    <div class="sb-section">Reports</div>
+    <div class="sb-item" onclick="goto('budget',this)"><span class="icon">📊</span><span class="label">Budget vs tracked</span><span class="tip">Budget vs tracked</span></div>
+    <div class="sb-item" onclick="goto('service',this)"><span class="icon">🏷</span><span class="label">By service</span><span class="tip">By service</span></div>
+    <div class="sb-item" onclick="goto('team-report',this)"><span class="icon">👥</span><span class="label">By team member</span><span class="tip">By team member</span></div>
+  </div>
+  <div class="sb-bottom">
+    <div class="month-row">
+      <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="month-label" id="monthLabel">—</span>
+      <button class="month-btn" onclick="changeMonth(1)">›</button>
+    </div>
+  </div>
+</nav>
+<main class="main" id="main">
+  <div id="page-tracker" class="page active">
+    <div class="page-header">
+      <div><div class="page-title">Time tracker</div><div class="page-sub" id="todayLabel">—</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="currentUser" placeholder="Your name" style="width:160px;height:34px;" oninput="saveCurrentUser(this.value)" />
+        <button class="btn" onclick="exportData()">Export backup</button>
+      </div>
+    </div>
+    <div class="timer-card">
+      <div class="timer-fields">
+        <div><label>Client</label><select id="tClient" onchange="onClientChange()"><option value="">Select client...</option></select></div>
+        <div><label>Service type</label>
+          <select id="tService"><option value="">Select...</option>
+            <option>Strategy</option><option>Newsroom</option><option>PR</option><option>Social Media</option>
+            <option>Influencer</option><option>eDM/Blogs</option><option>Awards</option>
+            <option>Brand Activation - Event & Partnerships</option><option>Design</option>
+            <option>Reporting</option><option>Project Management & Admin</option>
+            <option>Onboarding</option><option>Sales / Ops</option><option>Internal</option><option>Pitchr</option>
+          </select>
+        </div>
+        <div><label>Notes</label><input type="text" id="tNotes" placeholder="Optional..." /></div>
+      </div>
+      <div class="timer-bottom">
+        <div class="timer-digits" id="timerDigits">00:00:00</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          
+          <button class="btn-timer" id="timerBtn" onclick="toggleTimer()">Start</button>
+        </div>
+      </div>
+    </div>
+    <div class="stats-row" style="margin-top:1px;">
+      <div class="stat"><div class="stat-label">Today</div><div class="stat-val" id="statToday">0<small>h 0m</small></div></div>
+      <div class="stat"><div class="stat-label">This month</div><div class="stat-val" id="statMonth">0<small>h 0m</small></div></div>
+      <div class="stat"><div class="stat-label">Entries</div><div class="stat-val" id="statEntries">0</div></div>
+    </div>
+    <div class="log-card" style="margin-top:1px;">
+      <div class="log-toolbar">
+        <span class="log-toolbar-label">Log</span>
+        <div class="log-filters">
+          <select class="filter-select" id="filterClient" onchange="renderLog()"><option value="">All clients</option></select>
+          <select class="filter-select" id="filterMember" onchange="renderLog()"><option value="">All members</option></select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Date</th><th>Client</th><th>Service</th><th>Notes</th><th>Who</th><th>Duration</th><th>Type</th><th></th></tr></thead>
+          <tbody id="logBody"></tbody>
+          <tfoot>
+            <tr class="retro-row">
+              <td><input type="date" id="rDate" style="width:112px;" /></td>
+              <td><select id="rClient" style="width:100%;" onchange="onRetroClientChange()"><option value="">Client...</option></select></td>
+              <td><select id="rService" style="width:100%;"><option value="">Service...</option>
+                <option>Strategy</option><option>Newsroom</option><option>PR</option><option>Social Media</option>
+                <option>Influencer</option><option>eDM/Blogs</option><option>Awards</option>
+                <option>Brand Activation - Event & Partnerships</option><option>Design</option>
+                <option>Reporting</option><option>Project Management & Admin</option>
+                <option>Onboarding</option><option>Sales / Ops</option><option>Internal</option><option>Pitchr</option>
+              </select></td>
+              <td><input type="text" id="rNotes" placeholder="Notes..." style="width:100%;" /></td>
+              <td><span style="font-size:11px;color:var(--muted);padding:0 4px;display:inline-block;">Saved user</span></td>
+              <td><input type="number" id="rDuration" min="0" max="24" step="0.25" placeholder="hrs" style="width:58px;text-align:center;" /></td>
+              <td></td>
+              <td><button class="btn-add" onclick="logRetro()">+ Add</button></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="page-clients" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Clients</div><div class="page-sub">Manage your active roster</div></div>
+      <button class="btn btn-solid" onclick="openClientModal()">+ Add client</button>
+    </div>
+    <div id="clientsGrid"></div>
+  </div>
+  <div id="page-team-manage" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Team</div><div class="page-sub">Manage who can log time</div></div>
+      <button class="btn btn-solid" onclick="openTeamModal()">+ Add member</button>
+    </div>
+    <div id="teamGrid"></div>
+  </div>
+  <div id="page-budget" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Budget vs tracked</div><div class="page-sub" id="budgetSub">—</div></div>
+    </div>
+    <div class="report-filter-bar">
+      <span class="report-filter-label">View</span>
+      <div class="filter-toggle">
+        <button class="active" id="budgetToggleAll" onclick="setFilter('budget','all')">Overview</button>
+        <button id="budgetTogglePerson" onclick="setFilter('budget','person')">By person</button>
+      </div>
+      <select id="budgetPersonSel" onchange="renderBudget()" style="display:none;min-width:160px;"><option value="">Select member...</option></select>
+    </div>
+    <div id="budgetReport"></div>
+  </div>
+  <div id="page-service" class="page">
+    <div class="page-header">
+      <div><div class="page-title">By service</div><div class="page-sub" id="serviceSub">—</div></div>
+    </div>
+    <div class="report-filter-bar">
+      <span class="report-filter-label">View</span>
+      <div class="filter-toggle">
+        <button class="active" id="serviceToggleAll" onclick="setFilter('service','all')">Overview</button>
+        <button id="serviceTogglePerson" onclick="setFilter('service','person')">By person</button>
+      </div>
+      <select id="servicePersonSel" onchange="renderService()" style="display:none;min-width:160px;"><option value="">Select member...</option></select>
+    </div>
+    <div id="serviceReport"></div>
+  </div>
+  <div id="page-team-report" class="page">
+    <div class="page-header">
+      <div><div class="page-title">By team member</div><div class="page-sub" id="teamSub">—</div></div>
+    </div>
+    <div id="teamReport"></div>
+  </div>
+</main>
+</div>
+<div class="modal-bg" id="clientModal">
+  <div class="modal">
+    <div class="modal-title">Add client</div>
+    <div class="form-row"><label>Client name</label><input type="text" id="mName" placeholder="e.g. Beulah" /></div>
+    <div class="form-row"><label>Short code</label><input type="text" id="mCode" placeholder="e.g. BEU" maxlength="6" /></div>
+    <div class="form-row"><label>Monthly hours budget</label><input type="number" id="mHours" placeholder="e.g. 20" min="0" /></div>
+    <div class="form-row"><label>Scope notes</label><textarea id="mScope" placeholder="e.g. Monthly PR retainer, 2 press releases, weekly reporting..."></textarea></div>
+    <div class="form-row"><label>Services</label><div class="team-picker" id="addServicesPicker"></div></div>
+    <div class="form-row"><label>Assigned team</label><div class="team-picker" id="addTeamPicker"></div></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeClientModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="addClient()">Add client</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <div class="modal-title">Edit client</div>
+    <div class="form-row"><label>Client name</label><input type="text" id="eName" /></div>
+    <div class="form-row"><label>Monthly hours budget</label><input type="number" id="eHours" min="0" /></div>
+    <div class="form-row"><label>Scope notes</label><textarea id="eScope"></textarea></div>
+    <div class="form-row"><label>Services</label><div class="team-picker" id="editServicesPicker"></div></div>
+    <div class="form-row"><label>Assigned team</label><div class="team-picker" id="editTeamPicker"></div></div>
+    <input type="hidden" id="eId" />
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="teamModal">
+  <div class="modal">
+    <div class="modal-title">Add team member</div>
+    <div class="form-row"><label>Full name</label><input type="text" id="tmName" placeholder="e.g. Alana Calvi" /></div>
+    <div class="form-row"><label>Initials</label><input type="text" id="tmInitials" placeholder="e.g. AC" maxlength="3" /></div>
+    <div class="form-row"><label>Role</label><input type="text" id="tmRole" placeholder="e.g. Account Director" /></div>
+    <div class="form-row"><label>Monthly hours budget</label><input type="number" id="tmHours" placeholder="e.g. 160" min="0" /></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeTeamModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="addMember()">Add member</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="editTeamModal">
+  <div class="modal">
+    <div class="modal-title">Edit team member</div>
+    <div class="form-row"><label>Full name</label><input type="text" id="etmName" /></div>
+    <div class="form-row"><label>Initials</label><input type="text" id="etmInitials" maxlength="3" /></div>
+    <div class="form-row"><label>Role</label><input type="text" id="etmRole" /></div>
+    <div class="form-row"><label>Monthly hours budget</label><input type="number" id="etmHours" min="0" /></div>
+    <input type="hidden" id="etmId" />
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditTeamModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveTeamEdit()">Save</button>
+    </div>
+  </div>
+</div>
+<script>
+let sbOpen=true, currentMonth=new Date();
+let entries=JSON.parse(localStorage.getItem('tt_entries')||'[]');
+let clients=JSON.parse(localStorage.getItem('tt_clients')||'[]');
+let team=JSON.parse(localStorage.getItem('tt_team')||'[]');
+let timerOn=false,timerStart=null,timerMs=0,timerTick=null;
+let rFilters={budget:'all',service:'all'};
+let currentUser=localStorage.getItem('tt_current_user')||'';
+function save(){
+  localStorage.setItem('tt_entries',JSON.stringify(entries));
+  localStorage.setItem('tt_clients',JSON.stringify(clients));
+  localStorage.setItem('tt_team',JSON.stringify(team));
+}
+function saveCurrentUser(value){
+  currentUser=value.trim();
+  localStorage.setItem('tt_current_user',currentUser);
+}
+function exportData(){
+  const data={entries,clients,team};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='time-tracktor-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function toggleSb(){
+  sbOpen=!sbOpen;
+  document.getElementById('sb').classList.toggle('collapsed',!sbOpen);
+  document.getElementById('main').classList.toggle('expanded',!sbOpen);
+}
+function goto(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(el)el.classList.add('active');
+  if(page==='clients')renderClients();
+  if(page==='team-manage')renderTeamGrid();
+  if(page==='budget')renderBudget();
+  if(page==='service')renderService();
+  if(page==='team-report')renderTeamReport();
+}
+function changeMonth(d){
+  currentMonth=new Date(currentMonth.getFullYear(),currentMonth.getMonth()+d,1);
+  updateMonth();
+}
+function updateMonth(){
+  const label=currentMonth.toLocaleDateString('en-AU',{month:'long',year:'numeric'});
+  document.getElementById('monthLabel').textContent=label;
+  ['budgetSub','serviceSub','teamSub'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=label;});
+  renderLog();renderStats();
+  const pg=document.querySelector('.page.active')?.id;
+  if(pg==='page-budget')renderBudget();
+  if(pg==='page-service')renderService();
+  if(pg==='page-team-report')renderTeamReport();
+}
+function inMonth(d){if(!d)return false;const x=new Date(d);return x.getFullYear()===currentMonth.getFullYear()&&x.getMonth()===currentMonth.getMonth();}
+function isToday(d){if(!d)return false;return new Date().toDateString()===new Date(d).toDateString();}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function fmt(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return[h,m,sec].map(v=>String(v).padStart(2,'0')).join(':');}
+function msToHm(ms){const t=Math.round(ms/60000);return Math.floor(t/60)+'h '+(t%60)+'m';}
+function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y.slice(2);}
+function getInitials(name){const m=team.find(t=>t.name===name);return m?m.initials:(name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+function assignedTo(c,name){return!c.assignedTeam||!c.assignedTeam.length||c.assignedTeam.includes(name);}
+function teamPickerHTML(sel=[]){
+  if(!team.length)return'<div style="padding:10px;font-size:12px;color:var(--muted)">No team members yet</div>';
+  return team.map(m=>`<label class="team-picker-item"><input type="checkbox" value="${m.name}"${sel.includes(m.name)?' checked':''}/>
+    <div class="avatar" style="width:22px;height:22px;font-size:9px;">${m.initials}</div>
+    <span>${m.name}</span><span style="color:var(--muted);font-size:11px;margin-left:auto;">${m.role||''}</span></label>`).join('');
+}
+const SERVICE_OPTIONS=[
+  'Strategy','Newsroom','PR','Social Media','Influencer','eDM/Blogs','Awards',
+  'Brand Activation - Event & Partnerships','Design','Reporting','Project Management & Admin',
+  'Onboarding','Sales / Ops','Internal','Pitchr'
+];
+function servicesPickerHTML(sel=[]){
+  return SERVICE_OPTIONS.map(service=>`<label class="team-picker-item"><input type="checkbox" value="${service}"${sel.includes(service)?' checked':''}/>
+    <span>${service}</span></label>`).join('');
+}
+function checkedServices(pickerId){return Array.from(document.querySelectorAll('#'+pickerId+' input[type=checkbox]:checked')).map(cb=>cb.value);}
+function checkedTeam(pickerId){return Array.from(document.querySelectorAll('#'+pickerId+' input[type=checkbox]:checked')).map(cb=>cb.value);}
+function populateDropdowns(){
+  const opts=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('filterClient').innerHTML='<option value="">All clients</option>'+opts;
+  document.getElementById('rClient').innerHTML='<option value="">Client...</option>'+opts;
+  document.getElementById('tClient').innerHTML='<option value="">Select client...</option>'+opts;
+  updateServiceOptions('tClient','tService');
+  updateServiceOptions('rClient','rService');
+}
+function populateMemberDropdowns(){
+  const opts=team.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  ['filterMember','budgetPersonSel','servicePersonSel'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const blank=id==='filterMember'?'<option value="">All members</option>':'<option value="">Select member...</option>';
+    el.innerHTML=blank+opts;
+  });
+}
+function updateServiceOptions(clientFieldId,serviceFieldId){
+  const clientId=document.getElementById(clientFieldId).value;
+  const serviceEl=document.getElementById(serviceFieldId);
+  const client=clients.find(c=>c.id===clientId);
+  const services=(client&&client.services&&client.services.length)?client.services:SERVICE_OPTIONS;
+  const current=serviceEl.value;
+  serviceEl.innerHTML='<option value="">Select...</option>'+services.map(service=>`<option>${service}</option>`).join('');
+  if(services.includes(current)) serviceEl.value=current;
+}
+function onClientChange(){
+  updateServiceOptions('tClient','tService');
+}
+function onRetroClientChange(){
+  updateServiceOptions('rClient','rService');
+}
+function toggleTimer(){
+  const btn=document.getElementById('timerBtn');
+  const client=document.getElementById('tClient').value;
+  const service=document.getElementById('tService').value;
+  const member=currentUser;
+  if(!timerOn){
+    if(!client){document.getElementById('tClient').focus();return;}
+    if(!service){document.getElementById('tService').focus();return;}
+    if(!member){document.getElementById('currentUser').focus();return;}
+    timerOn=true;
+    timerStart=Date.now()-timerMs;
+    btn.textContent='Stop';
+    btn.className='btn-timer stop';
+    document.getElementById('timerDigits').className='timer-digits running';
+    document.title='Running - Time Tracktor';
+    timerTick=setInterval(()=>{
+      timerMs=Date.now()-timerStart;
+      document.getElementById('timerDigits').textContent=fmt(timerMs);
+    },1000);
+  }else{
+    timerOn=false;
+    clearInterval(timerTick);
+    addEntry({client,service,notes:document.getElementById('tNotes').value,duration:timerMs,date:todayStr(),member});
+    timerMs=0;
+    document.getElementById('timerDigits').textContent='00:00:00';
+    document.getElementById('timerDigits').className='timer-digits';
+    btn.textContent='Start';
+    btn.className='btn-timer';
+    document.title='Time Tracktor';
+    document.getElementById('tNotes').value='';
+    document.getElementById('tClient').value='';
+    updateServiceOptions('tClient','tService');
+  }
+}
+function logRetro(){
+  const client=document.getElementById('rClient').value;
+  const service=document.getElementById('rService').value;
+  const duration=parseFloat(document.getElementById('rDuration').value)||0;
+  const date=document.getElementById('rDate').value;
+  const member=currentUser;
+  if(!client){document.getElementById('rClient').focus();return;}
+  if(!service){document.getElementById('rService').focus();return;}
+  if(!member){document.getElementById('currentUser').focus();return;}
+  if(!duration){document.getElementById('rDuration').focus();return;}
+  if(duration>24){alert('Check duration - exceeds 24h');document.getElementById('rDuration').focus();return;}
+  addEntry({client,service,notes:document.getElementById('rNotes').value,duration:Math.round(duration*3600000),date,member});
+  ['rDuration','rNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rClient').value='';
+  updateServiceOptions('rClient','rService');
+  document.getElementById('rDate').value=todayStr();
+}
+function addEntry(data){
+  // auto billable logic
+  const isInternal = data.service === 'Internal' || data.service === 'Sales / Ops';
+  data.billable = !isInternal;
+
+  entries.unshift({id:Date.now(),...data});
+  save();
+  renderLog();
+  renderStats();
+  renderClients();
+}
+function deleteEntry(id){
+  if(!confirm('Delete this entry?'))return;
+  entries=entries.filter(e=>e.id!==id);save();renderLog();renderStats();renderClients();
+}
+function renderLog(){
+  const body=document.getElementById('logBody');
+  const cf=document.getElementById('filterClient').value;
+  const mf=document.getElementById('filterMember').value;
+  const cmap=Object.fromEntries(clients.map(c=>[c.id,c.name]));
+  const filtered=entries.filter(e=>{
+    if(!inMonth(e.date))return false;
+    if(cf&&e.client!==cf)return false;
+    if(mf&&e.member!==mf)return false;
+    return true;
+  });
+  if(!filtered.length){body.innerHTML='<tr class="empty-row"><td colspan="8">No entries for this period</td></tr>';return;}
+  body.innerHTML=filtered.map(e=>`<tr>
+    <td style="color:var(--muted);white-space:nowrap;">${fmtDate(e.date)}</td>
+    <td style="font-weight:400;">${cmap[e.client]||e.client||'—'}</td>
+    <td style="color:var(--muted);">${e.service||'—'}</td>
+    <td style="color:var(--muted);">${e.notes||'—'}</td>
+    <td><div style="display:flex;align-items:center;gap:7px;"><div class="avatar">${getInitials(e.member)}</div><span>${e.member||'—'}</span></div></td>
+    <td style="font-weight:500;font-variant-numeric:tabular-nums;">${msToHm(e.duration)}</td>
+    <td style="font-size:11px;color:${e.billable ? 'var(--ok)' : 'var(--muted)'};">
+      ${e.billable ? 'Billable' : 'Internal'}
+    </td>
+    <td><button class="del-btn" onclick="deleteEntry(${e.id})">×</button></td>
+  </tr>`).join('');
+}
+function renderStats(){
+  const todayMs=entries.filter(e=>isToday(e.date)).reduce((s,e)=>s+e.duration,0);
+  const monthMs=entries.filter(e=>inMonth(e.date)).reduce((s,e)=>s+e.duration,0);
+  const cnt=entries.filter(e=>inMonth(e.date)).length;
+  const hm=ms=>{const t=Math.round(ms/60000);return Math.floor(t/60)+'<small>h '+(t%60)+'m</small>';};
+  document.getElementById('statToday').innerHTML=hm(todayMs);
+  document.getElementById('statMonth').innerHTML=hm(monthMs);
+  document.getElementById('statEntries').textContent=cnt;
+}
+function clientMs(id){return entries.filter(e=>e.client===id&&inMonth(e.date)).reduce((s,e)=>s+e.duration,0);}
+function renderClients(){
+  const el=document.getElementById('clientsGrid');
+  if(!clients.length){el.className='';el.innerHTML='<div class="clients-empty"><div class="clients-empty-title">No clients yet</div><div class="clients-empty-sub">Add your first client to start tracking time.</div></div>';return;}
+  el.className='clients-grid';
+  el.innerHTML=clients.map(c=>{
+    const tracked=clientMs(c.id),budget=(c.budget||0)*3600000;
+    const pct=budget>0?Math.min(Math.round(tracked/budget*100),100):0;
+    const over=budget>0&&tracked>budget,warn=!over&&pct>=80;
+    const cls=over?'over':warn?'warn':'ok';
+    const avatars=(c.assignedTeam||[]).map(n=>`<div class="avatar" style="width:22px;height:22px;font-size:9px;" title="${n}">${getInitials(n)}</div>`).join('');
+    return`<div class="client-card">
+      <div class="client-name">${c.name}</div>
+      <div class="client-scope">${c.scope||'No scope added'}</div>
+      ${(c.services&&c.services.length)?`<div class="client-team-avatars" style="margin-top:-2px;margin-bottom:12px;">${c.services.map(service=>`<span style="font-size:10px;padding:4px 7px;border:1px solid var(--border);color:var(--muted);">${service}</span>`).join('')}</div>`:''}
+      <div class="client-budget-row"><span class="client-tracked">${msToHm(tracked)}</span><span class="client-of">of ${c.budget||'?'}h</span></div>
+      <div class="progress"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+      ${avatars?`<div class="client-team-avatars">${avatars}</div>`:''}
+      <div class="client-actions">
+        <button class="btn-xs" onclick="openEditModal('${c.id}')">Edit</button>
+        <button class="btn-xs remove" onclick="removeClient('${c.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openClientModal(){
+  document.getElementById('addTeamPicker').innerHTML=teamPickerHTML();
+  document.getElementById('addServicesPicker').innerHTML=servicesPickerHTML();
+  document.getElementById('clientModal').classList.add('open');
+  document.getElementById('mName').focus();
+}
+function closeClientModal(){
+  document.getElementById('clientModal').classList.remove('open');
+  ['mName','mCode','mHours','mScope'].forEach(id=>document.getElementById(id).value='');
+}
+function addClient(){
+  const name=document.getElementById('mName').value.trim();
+  const code=document.getElementById('mCode').value.trim().toUpperCase();
+  if(!name||!code)return;
+  clients.push({
+    id:code+'_'+Date.now(),
+    name,
+    code,
+    budget:parseFloat(document.getElementById('mHours').value)||0,
+    scope:document.getElementById('mScope').value.trim(),
+    services:checkedServices('addServicesPicker'),
+    assignedTeam:checkedTeam('addTeamPicker')
+  });
+  save();populateDropdowns();renderClients();closeClientModal();
+}
+function openEditModal(id){
+  const c=clients.find(x=>x.id===id);if(!c)return;
+  document.getElementById('eId').value=id;document.getElementById('eName').value=c.name;
+  document.getElementById('eHours').value=c.budget||'';document.getElementById('eScope').value=c.scope||'';
+  document.getElementById('editServicesPicker').innerHTML=servicesPickerHTML(c.services||[]);
+  document.getElementById('editTeamPicker').innerHTML=teamPickerHTML(c.assignedTeam||[]);
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('open');}
+function saveEdit(){
+  const id=document.getElementById('eId').value;const c=clients.find(x=>x.id===id);if(!c)return;
+  c.name=document.getElementById('eName').value.trim()||c.name;
+  c.budget=parseFloat(document.getElementById('eHours').value)||0;
+  c.scope=document.getElementById('eScope').value.trim();
+  c.services=checkedServices('editServicesPicker');
+  c.assignedTeam=checkedTeam('editTeamPicker');
+  save();populateDropdowns();renderClients();closeEditModal();
+}
+function removeClient(id){if(!confirm('Remove this client?'))return;clients=clients.filter(c=>c.id!==id);save();populateDropdowns();renderClients();}
+function teamMs(name){
+  return entries.filter(e=>e.member===name&&inMonth(e.date)).reduce((s,e)=>s+e.duration,0);
+}
+function renderTeamGrid(){
+  const el=document.getElementById('teamGrid');
+  if(!team.length){el.className='';el.innerHTML='<div class="clients-empty"><div class="clients-empty-title">No team members yet</div><div class="clients-empty-sub">Add your first team member to get started.</div></div>';return;}
+  el.className='clients-grid';
+  el.innerHTML=team.map(m=>{
+    const tracked=teamMs(m.name),budget=(m.monthlyHours||0)*3600000;
+    const pct=budget>0?Math.min(Math.round(tracked/budget*100),100):0;
+    const over=budget>0&&tracked>budget,warn=!over&&pct>=80;
+    const cls=over?'over':warn?'warn':'ok';
+    return`<div class="client-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="avatar" style="width:38px;height:38px;font-size:13px;font-weight:500;">${m.initials}</div>
+        <div><div class="client-name">${m.name}</div><div class="client-scope">${m.role||'—'}</div></div>
+      </div>
+      <div class="client-budget-row"><span class="client-tracked">${msToHm(tracked)}</span><span class="client-of">of ${m.monthlyHours||'?'}h</span></div>
+      <div class="progress"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="client-actions"><button class="btn-xs" onclick="openEditTeamModal('${m.id}')">Edit</button><button class="btn-xs remove" onclick="removeMember('${m.id}')">Remove</button></div>
+    </div>`;
+  }).join('');
+}
+function openTeamModal(){document.getElementById('teamModal').classList.add('open');document.getElementById('tmName').focus();}
+function openEditTeamModal(id){
+  const m=team.find(x=>x.id===id);if(!m)return;
+  document.getElementById('etmId').value=id;
+  document.getElementById('etmName').value=m.name||'';
+  document.getElementById('etmInitials').value=m.initials||'';
+  document.getElementById('etmRole').value=m.role||'';
+  document.getElementById('etmHours').value=m.monthlyHours||'';
+  document.getElementById('editTeamModal').classList.add('open');
+}
+function closeTeamModal(){document.getElementById('teamModal').classList.remove('open');['tmName','tmInitials','tmRole','tmHours'].forEach(id=>document.getElementById(id).value='');}
+function closeEditTeamModal(){document.getElementById('editTeamModal').classList.remove('open');['etmName','etmInitials','etmRole','etmHours','etmId'].forEach(id=>document.getElementById(id).value='');}
+function addMember(){
+  const name=document.getElementById('tmName').value.trim();
+  const initials=document.getElementById('tmInitials').value.trim().toUpperCase();
+  if(!name||!initials)return;
+  team.push({
+    id:Date.now().toString(),
+    name,
+    initials,
+    role:document.getElementById('tmRole').value.trim(),
+    monthlyHours:parseFloat(document.getElementById('tmHours').value)||0
+  });
+  save();populateMemberDropdowns();renderTeamGrid();closeTeamModal();
+}
+function saveTeamEdit(){
+  const id=document.getElementById('etmId').value;
+  const m=team.find(x=>x.id===id);if(!m)return;
+  const oldName=m.name;
+  m.name=document.getElementById('etmName').value.trim()||m.name;
+  m.initials=document.getElementById('etmInitials').value.trim().toUpperCase()||m.initials;
+  m.role=document.getElementById('etmRole').value.trim();
+  m.monthlyHours=parseFloat(document.getElementById('etmHours').value)||0;
+  if(oldName!==m.name){
+    entries.forEach(e=>{ if(e.member===oldName) e.member=m.name; });
+    clients.forEach(c=>{
+      if(Array.isArray(c.assignedTeam)){
+        c.assignedTeam=c.assignedTeam.map(name=>name===oldName?m.name:name);
+      }
+    });
+  }
+  save();
+  populateMemberDropdowns();
+  renderTeamGrid();
+  renderLog();
+  renderClients();
+  renderTeamReport();
+  closeEditTeamModal();
+}
+function removeMember(id){if(!confirm('Remove this team member?'))return;team=team.filter(m=>m.id!==id);save();populateMemberDropdowns();renderTeamGrid();}
+function setFilter(report,mode){
+  rFilters[report]=mode;
+  document.getElementById(report+'ToggleAll').classList.toggle('active',mode==='all');
+  document.getElementById(report+'TogglePerson').classList.toggle('active',mode==='person');
+  document.getElementById(report+'PersonSel').style.display=mode==='person'?'':'none';
+  if(report==='budget')renderBudget();
+  if(report==='service')renderService();
+}
+function getFilteredClients(report){
+  if(rFilters[report]==='all')return clients;
+  const name=document.getElementById(report+'PersonSel').value;
+  if(!name)return clients;
+  return clients.filter(c=>assignedTo(c,name));
+}
+function renderBudget(){
+  const el=document.getElementById('budgetReport');
+  const fc=getFilteredClients('budget');
+  if(!fc.length){el.innerHTML='<div class="report-empty">No clients to show</div>';return;}
+  const member=rFilters.budget==='person'?document.getElementById('budgetPersonSel').value:null;
+  el.innerHTML=fc.map(c=>{
+    const me=entries.filter(e=>inMonth(e.date)&&e.client===c.id&&(!member||e.member===member));
+    const tracked=me.reduce((s,e)=>s+e.duration,0);
+    const budget=(c.budget||0)*3600000;
+    const pct=budget>0?Math.round(tracked/budget*100):0;
+    const over=budget>0&&tracked>budget,warn=!over&&pct>=80;
+    const cls=over?'over':warn?'warn':'ok';
+    const bc=over?'badge-over':warn?'badge-warn':'badge-ok';
+    const bt=over?'Over budget':warn?'Near limit':'On track';
+    const rem=budget>0?msToHm(Math.max(budget-tracked,0))+' remaining':'No budget set';
+    const teamStr=(c.assignedTeam||[]).join(', ')||'No team assigned';
+    return`<div class="report-block">
+      <div class="report-head">
+        <div><div class="report-head-name">${c.name}</div><div class="report-head-sub">${teamStr}</div></div>
+        <div class="report-head-right">
+          <span class="badge ${bc}">${bt}</span>
+          <span style="font-weight:500;font-size:14px;font-variant-numeric:tabular-nums;">${msToHm(tracked)}</span>
+          <span style="color:var(--muted);font-size:12px;">/ ${c.budget||'?'}h</span>
+        </div>
+      </div>
+      <div class="report-progress">
+        <div class="progress" style="height:3px;"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="report-pct"><span>${pct}% used</span><span>${rem}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderService(){
+  const el=document.getElementById('serviceReport');
+  const fc=getFilteredClients('service');
+  const member=rFilters.service==='person'?document.getElementById('servicePersonSel').value:null;
+  const validIds=new Set(fc.map(c=>c.id));
+  const cmap=Object.fromEntries(clients.map(c=>[c.id,c.name]));
+  const byClient={};
+  entries.filter(e=>inMonth(e.date)&&(!member||e.member===member)&&validIds.has(e.client)).forEach(e=>{
+    if(!byClient[e.client])byClient[e.client]={};
+    byClient[e.client][e.service]=(byClient[e.client][e.service]||0)+e.duration;
+  });
+  if(!Object.keys(byClient).length){el.innerHTML='<div class="report-empty">No entries to show</div>';return;}
+  el.innerHTML=Object.entries(byClient).map(([cid,svcs])=>{
+    const total=Object.values(svcs).reduce((s,v)=>s+v,0);
+    const sorted=Object.entries(svcs).sort((a,b)=>b[1]-a[1]);
+    const max=sorted[0][1];
+    return`<div class="report-block">
+      <div class="report-head"><div class="report-head-name">${cmap[cid]||cid}</div><div style="font-weight:500;">${msToHm(total)}</div></div>
+      ${sorted.map(([s,ms])=>`<div class="svc-row"><span class="svc-name">${s}</span><div class="svc-bar"><div class="svc-bar-fill" style="width:${Math.round(ms/max*100)}%"></div></div><span class="svc-time">${msToHm(ms)}</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+function renderTeamReport(){
+  const el=document.getElementById('teamReport');
+  const me=entries.filter(e=>inMonth(e.date));
+  if(!me.length){el.innerHTML='<div class="report-empty">No entries this month</div>';return;}
+  const cmap=Object.fromEntries(clients.map(c=>[c.id,c.name]));
+  const byMember={};
+  me.forEach(e=>{
+    if(!byMember[e.member])byMember[e.member]={total:0,clients:{}};
+    byMember[e.member].total+=e.duration;
+    byMember[e.member].clients[e.client]=(byMember[e.member].clients[e.client]||0)+e.duration;
+  });
+  const sorted=Object.entries(byMember).sort((a,b)=>b[1].total-a[1].total);
+  const max=sorted[0][1].total;
+  el.innerHTML=`<div class="report-block">${sorted.map(([member,data])=>{
+    const ini=getInitials(member);
+    const top=Object.entries(data.clients).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([id,ms])=>`${cmap[id]||id} ${msToHm(ms)}`).join(' · ');
+    return`<div class="member-row">
+      <div class="avatar" style="width:32px;height:32px;font-size:11px;">${ini}</div>
+      <div style="flex:1;"><div class="member-name">${member}</div><div class="member-sub">${top||'—'}</div></div>
+      <div class="member-bar-wrap"><div class="member-bar-fill" style="width:${Math.round(data.total/max*100)}%"></div></div>
+      <div class="member-time">${msToHm(data.total)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function seedData(){
+  if(clients.length||team.length||entries.length)return;
+  team=[
+    {id:'1',name:'Jaye Dixon',initials:'JD',role:'Customer Success and Systems Manager',monthlyHours:160},
+    {id:'2',name:'Sejal',initials:'SE',role:'Account Manager',monthlyHours:160},
+    {id:'3',name:'Taylor',initials:'TA',role:'Account Coordinator',monthlyHours:160}
+  ];
+  clients=[
+    {id:'deicorp_1',name:'Deicorp',code:'DEI',budget:45,scope:'PR and social retainer',services:['PR','Social Media','Reporting'],assignedTeam:['Jaye Dixon','Sejal','Taylor']},
+    {id:'kokoda_1',name:'Kokoda Property',code:'KKP',budget:32,scope:'PR and reporting',services:['PR','Reporting'],assignedTeam:['Jaye Dixon','Sejal']}
+  ];
+  entries=[
+    {id:1,client:'deicorp_1',service:'PR',notes:'Media pitching',duration:5400000,date:todayStr(),member:'Sejal'},
+    {id:2,client:'kokoda_1',service:'Reporting',notes:'Monthly report draft',duration:3600000,date:todayStr(),member:'Jaye Dixon'}
+  ];
+  save();
+}
+function init(){
+  seedData();
+  updateMonth();
+  document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('rDate').value=todayStr();
+  document.getElementById('rDate').max=todayStr();
+  document.getElementById('currentUser').value=currentUser;
+  populateDropdowns();
+  populateMemberDropdowns();
+  renderLog();
+  renderStats();
+}
+init();
+</script>
+</body>
+</html>

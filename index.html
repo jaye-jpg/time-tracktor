@@ -379,7 +379,7 @@ tbody tr:hover td{background:var(--surface2);}
 <script>
 const supabaseUrl = 'https://hkqudsuaiokvaxodzyhk.supabase.co';
 const supabaseKey = 'sb_publishable_ANk6xWjZew9EnU33EGrtkQ_PFf4-2iP';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+const db = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const SERVICE_OPTIONS = [
   'Strategy','Newsroom','PR','Social Media','Influencer','eDM/Blogs','Awards',
@@ -536,9 +536,9 @@ function escapeHtml(str) {
 
 async function loadAllData() {
   const [teamRes, clientsRes, entriesRes] = await Promise.all([
-    supabase.from('team_members').select('*').order('name'),
-    supabase.from('clients').select('*').order('name'),
-    supabase.from('time_entries').select('*').order('entry_date', { ascending:false })
+    db.from('team_members').select('*').order('name'),
+    db.from('clients').select('*').order('name'),
+    db.from('time_entries').select('*').order('entry_date', { ascending:false })
   ]);
 
   if (teamRes.error) throw teamRes.error;
@@ -693,7 +693,7 @@ async function logRetro() {
 async function addEntry(data) {
   const billable = !(data.service === 'Internal' || data.service === 'Sales / Ops');
 
-  const { error } = await supabase.from('time_entries').insert({
+  const { error } = await db.from('time_entries').insert({
     entry_date: data.date,
     client_id: data.client,
     member_name: data.member,
@@ -716,7 +716,7 @@ async function addEntry(data) {
 async function deleteEntry(id) {
   if (!confirm('Delete this entry?')) return;
 
-  const { error } = await supabase.from('time_entries').delete().eq('id', id);
+  const { error } = await db.from('time_entries').delete().eq('id', id);
   if (error) {
     console.error(error);
     showNotice('Could not delete time entry.', 'error');
@@ -827,7 +827,7 @@ async function addClient() {
   const code = document.getElementById('mCode').value.trim().toUpperCase();
   if (!name) return document.getElementById('mName').focus();
 
-  const { error } = await supabase.from('clients').insert({
+  const { error } = await db.from('clients').insert({
     name,
     code,
     budget: parseFloat(document.getElementById('mHours').value) || 0,
@@ -873,7 +873,7 @@ async function saveEdit() {
     assigned_team: checkedTeam('editTeamPicker')
   };
 
-  const { error } = await supabase.from('clients').update(payload).eq('id', id);
+  const { error } = await db.from('clients').update(payload).eq('id', id);
   if (error) {
     console.error(error);
     showNotice('Could not update client.', 'error');
@@ -887,7 +887,7 @@ async function saveEdit() {
 
 async function removeClient(id) {
   if (!confirm('Remove this client?')) return;
-  const { error } = await supabase.from('clients').delete().eq('id', id);
+  const { error } = await db.from('clients').delete().eq('id', id);
   if (error) {
     console.error(error);
     showNotice('Could not remove client.', 'error');
@@ -961,7 +961,7 @@ async function addMember() {
   const initials = document.getElementById('tmInitials').value.trim().toUpperCase();
   if (!name || !initials) return;
 
-  const { error } = await supabase.from('team_members').insert({
+  const { error } = await db.from('team_members').insert({
     name,
     initials,
     role: document.getElementById('tmRole').value.trim(),
@@ -987,7 +987,7 @@ async function saveTeamEdit() {
   const oldName = existing.name;
   const newName = document.getElementById('etmName').value.trim() || existing.name;
 
-  const { error } = await supabase.from('team_members').update({
+  const { error } = await db.from('team_members').update({
     name: newName,
     initials: document.getElementById('etmInitials').value.trim().toUpperCase() || existing.initials,
     role: document.getElementById('etmRole').value.trim(),
@@ -1001,13 +1001,13 @@ async function saveTeamEdit() {
   }
 
   if (oldName !== newName) {
-    await supabase.from('time_entries').update({ member_name: newName }).eq('member_name', oldName);
+    await db.from('time_entries').update({ member_name: newName }).eq('member_name', oldName);
     const updatedClients = clients.map(c => ({
       id: c.id,
       assigned_team: Array.isArray(c.assignedTeam) ? c.assignedTeam.map(name => name === oldName ? newName : name) : []
     }));
     for (const client of updatedClients) {
-      await supabase.from('clients').update({ assigned_team: client.assigned_team }).eq('id', client.id);
+      await db.from('clients').update({ assigned_team: client.assigned_team }).eq('id', client.id);
     }
   }
 
@@ -1018,7 +1018,7 @@ async function saveTeamEdit() {
 
 async function removeMember(id) {
   if (!confirm('Remove this team member?')) return;
-  const { error } = await supabase.from('team_members').delete().eq('id', id);
+  const { error } = await db.from('team_members').delete().eq('id', id);
   if (error) {
     console.error(error);
     showNotice('Could not remove team member.', 'error');
